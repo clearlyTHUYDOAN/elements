@@ -1,32 +1,11 @@
 import * as UpChunk from '@mux/upchunk';
+import MuxUploaderDropElement from './mux-uploader-drop';
 
 const styles = `
 :host {
   font-family: var(--uploader-font-family, Arial);
   font-size: var(--uploader-font-size, 16px);
   background-color: var(--uploader-background-color, inherit);
-}
-
-.overlay {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  right: 0;
-  left: 0;
-  height: 100%;
-  width: 100%;
-  z-index: -1;
-}
-
-.dropzone {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  right: 0;
-  left: 0;
-  height: 100%;
-  width: 100%;
-  z-index: 1;
 }
 
 p {
@@ -49,8 +28,6 @@ button {
   transition: all 0.2s ease;
   font-family: inherit;
   font-size: inherit;
-  z-index: 10;
-  position: relative;
 }
 
 button:hover {
@@ -97,30 +74,18 @@ button:active {
 
 :host([draggable]) .upload-instruction{
   display: block;
-  z-index: 10;
-  position: relative;
 }
-
-/*:host([drag-active]) {
-  background: #cbd5e1;
-}*/
 
 :host([type="radial"][upload-in-progress]) .radial-type {
   display: block;
-  z-index: 10;
-  position: relative;
 }
 
 :host([type="bar"][upload-in-progress]) .bar-type {
   display: block;
-  z-index: 10;
-  position: relative;
 }
 
 :host([upload-in-progress]) .upload-status {
   display: block;
-  z-index: 10;
-  position: relative;
 }
 
 :host([upload-in-progress]) ::slotted(p) {
@@ -137,8 +102,6 @@ button:active {
 
 :host([type="radial"][upload-error]) .status-message {
   color: #e22c3e;
-  z-index: 10;
-  position: relative;
 }
 
 :host([upload-error]) .upload-status {
@@ -151,8 +114,6 @@ button:active {
 
 :host([upload-error]) .text-container {
   display: flex;
-  z-index: 10;
-  position: relative;
 }
 
 :host([upload-error]) ::slotted(p) {
@@ -233,8 +194,9 @@ template.innerHTML = `
   <svg>
 </div>
 
-<div class="dropzone" id="dropzone"></div>
-<div class="overlay" id="overlay"></div>
+<slot name="dropzone">
+  <mux-uploader-drop></mux-uploader-drop>
+</slot>
 `;
 
 const TYPES = {
@@ -250,8 +212,7 @@ class MuxUploaderElement extends HTMLElement {
   uploadPercentage: HTMLElement | null | undefined;
   statusMessage: HTMLElement | null | undefined;
   retryMessage: HTMLElement | null | undefined;
-  dropzone: HTMLElement | null | undefined;
-  overlay: HTMLElement | null | undefined;
+  _dropHandler: Function;
 
   constructor() {
     super();
@@ -267,22 +228,24 @@ class MuxUploaderElement extends HTMLElement {
     this.uploadPercentage = this.shadowRoot?.getElementById('upload-status');
     this.statusMessage = this.shadowRoot?.getElementById('status-message');
     this.retryMessage = this.shadowRoot?.getElementById('retry-message');
-    this.dropzone = this.shadowRoot?.getElementById('dropzone');
-    this.overlay = this.shadowRoot?.getElementById('overlay');
+
+    this._dropHandler = this.handleUpload.bind(this);
   }
 
   connectedCallback() {
     this.setDefaultType();
     this.setupFilePickerButton();
     this.setupRetry();
+    this.setupDropHandler();
 
     this.setAttribute('role', 'progressbar');
     this.setAttribute('aria-label', 'progress bar');
     this.setAttribute('aria-live', 'polite');
+  }
 
-    if (this.getAttribute('draggable') === '') {
-      this.setupDragAndDrop();
-    }
+  disconnectedCallback() {
+    //@ts-ignore
+    this.removeEventListener('mux-drop', this._dropHandler, false);
   }
 
   get radius() {
@@ -293,14 +256,6 @@ class MuxUploaderElement extends HTMLElement {
     return this.radius * 2 * Math.PI;
   }
 
-  /* TO-DO: Apparently Chrome and Firefox do not allow changing an indexed property on FileList...
-     Thought I could work around it by setting up a formal setter due this error:
-     "Failed to set an indexed property on 'FileList': Indexed property setter is not supported."
-  */
-  // set file(value: any) {
-  //   if (this.hiddenFileInput && this.hiddenFileInput.files) this.hiddenFileInput.files[0] = value;
-  // }
-
   setDefaultType() {
     const currentType = this.getAttribute('type');
 
@@ -308,16 +263,16 @@ class MuxUploaderElement extends HTMLElement {
       this.setAttribute('type', TYPES.BAR);
     }
 
-    if (this.getAttribute('type') === TYPES.RADIAL) {
+    if (currentType === TYPES.RADIAL) {
       if (this.svgCircle) {
-        /* strokeDasharray is the size of dashes used to draw the circle with the size of gaps in between.
-           If the dash number is the same as the gap number, no gap is visible: a full circle.
-           strokeDashoffset defines where along our circle the dashes (in our case, a dash as long as the 
-           circumference of our circle) begins. The larger the offset, the farther into the circle you're
-           starting the "dash". In the beginning, offset is the same as the circumference. Meaning, the visible 
-           dash starts at the end so we don't see the full circle. Instead we see a gap the size of the circle. 
-           When the percentage is 100%, offset is 0 meaning the dash starts at the beginning so we can see the circle.
-        */
+        // strokeDasharray is the size of dashes used to draw the circle with the size of gaps in between.
+        // If the dash number is the same as the gap number, no gap is visible: a full circle.
+        // strokeDashoffset defines where along our circle the dashes (in our case, a dash as long as the
+        // circumference of our circle) begins. The larger the offset, the farther into the circle you're
+        // starting the "dash". In the beginning, offset is the same as the circumference. Meaning, the visible
+        // dash starts at the end so we don't see the full circle. Instead we see a gap the size of the circle.
+        // When the percentage is 100%, offset is 0 meaning the dash starts at the beginning so we can see the circle. (TD).
+
         this.svgCircle.style.strokeDasharray = `${this.circumference} ${this.circumference}`;
         this.svgCircle.style.strokeDashoffset = `${this.circumference}`;
       }
@@ -333,6 +288,11 @@ class MuxUploaderElement extends HTMLElement {
     });
   }
 
+  setupDropHandler() {
+    //@ts-ignore
+    this.addEventListener('mux-drop', this._dropHandler);
+  }
+
   setupFilePickerButton() {
     this.shadowRoot?.querySelector('slot[name=custom-button]')?.addEventListener('slotchange', () => {
       this.filePickerButton = this.shadowRoot?.querySelector('slot[name=custom-button]');
@@ -340,64 +300,25 @@ class MuxUploaderElement extends HTMLElement {
 
     this.filePickerButton?.addEventListener('click', () => {
       // TO-DO: Allows user to reattempt uploading the same file after an error.
-      // if (this.hiddenFileInput?.files && this.hiddenFileInput?.files[0]) {
-      // @ts-ignore
-      // this.file = '';
-      // }
+      // Note: Apparently Chrome and Firefox do not allow changing an indexed property on FileList...(TD).
+      // Source: https://stackoverflow.com/a/46689013
 
       this.hiddenFileInput?.click();
     });
 
-    this.hiddenFileInput?.addEventListener('change', () => {
+    this.hiddenFileInput?.addEventListener('change', (evt) => {
       const file = this.hiddenFileInput?.files && this.hiddenFileInput?.files[0];
 
       if (file) {
-        this.handleUpload(file);
+        this.dispatchEvent(
+          new CustomEvent('mux-drop', {
+            composed: true,
+            bubbles: true,
+            detail: file,
+          })
+        );
       }
     });
-  }
-
-  setupDragAndDrop() {
-    // Needs to attach listeners to a full-screen element in the shadow DOM
-    if (this.dropzone) {
-      this.addEventListener('dragenter', (evt) => {
-        console.log('dragenter');
-        if (this.overlay) {
-          this.overlay.style.zIndex = '20';
-          this.overlay.style.backgroundColor = 'rgba(226, 253, 255, 0.95)';
-        }
-        evt.preventDefault();
-        evt.stopPropagation();
-        // TO-DO: Instead of setting styles every where, consider the below.
-        // this.setAttribute('drag-active', '');
-      });
-
-      this.addEventListener('dragleave', (evt) => {
-        console.log('dragleave');
-        if (this.overlay) {
-          this.overlay.style.zIndex = '-1';
-          this.overlay.style.backgroundColor = '';
-        }
-        this.removeAttribute('drag-active');
-      });
-
-      this.addEventListener('dragover', (evt) => {
-        console.log('dragover');
-        evt.preventDefault();
-        evt.stopPropagation();
-      });
-
-      this.addEventListener('drop', (evt) => {
-        console.log('drop');
-        evt.preventDefault();
-        evt.stopPropagation();
-        const { dataTransfer } = evt;
-        // @ts-ignore
-        const { files } = dataTransfer;
-        const file = files[0];
-        this.handleUpload(file);
-      });
-    }
   }
 
   setProgress(percent: number) {
@@ -411,9 +332,8 @@ class MuxUploaderElement extends HTMLElement {
       }
       case TYPES.RADIAL: {
         if (this.svgCircle) {
-          /* The closer the upload percentage gets to 100%, the closer offset gets to 0.
-             The closer offset gets to 0, the more we can see the circumference of our circle.
-          */
+          // The closer the upload percentage gets to 100%, the closer offset gets to 0.
+          // The closer offset gets to 0, the more we can see the circumference of our circle. (TD).
           const offset = this.circumference - (percent / 100) * this.circumference;
 
           this.svgCircle.style.strokeDashoffset = offset.toString();
@@ -422,26 +342,16 @@ class MuxUploaderElement extends HTMLElement {
     }
   }
 
-  handleUpload(file: File) {
+  handleUpload(evt: CustomEvent) {
     const url = this.getAttribute('url');
 
     if (!url) {
-      if (this.overlay) {
-        this.overlay.style.zIndex = '-1';
-        this.overlay.style.backgroundColor = '';
-      }
       if (this.statusMessage) this.statusMessage.innerHTML = 'No url attribute specified -- cannot handleUpload';
       throw Error('No url attribute specified -- cannot handleUpload');
     } else {
       if (this.statusMessage) this.statusMessage.innerHTML = '';
     }
 
-    if (this.overlay) {
-      this.overlay.style.zIndex = '-1';
-      this.overlay.style.backgroundColor = '';
-    }
-
-    // Clear previous error message if an upload is reattempted
     if (this.statusMessage) {
       this.removeAttribute('upload-error');
       this.statusMessage.innerHTML = '';
@@ -451,10 +361,9 @@ class MuxUploaderElement extends HTMLElement {
 
     const upload = UpChunk.createUpload({
       endpoint: url,
-      file,
+      file: evt.detail,
     });
 
-    // Subscribe to upload events
     upload.on('error', (err) => {
       this.setAttribute('upload-error', '');
 
@@ -469,7 +378,7 @@ class MuxUploaderElement extends HTMLElement {
     });
 
     upload.on('success', () => {
-      // Open the asset in a new page?
+      console.log('Upload complete!');
     });
   }
 }
@@ -484,6 +393,12 @@ if (!globalThis.customElements.get('mux-uploader')) {
   globalThis.customElements.define('mux-uploader', MuxUploaderElement);
   /** @TODO consider externalizing this (breaks standard modularity) */
   globalThis.MuxUploaderElement = MuxUploaderElement;
+}
+
+if (!globalThis.customElements.get('mux-uploader-drop')) {
+  globalThis.customElements.define('mux-uploader-drop', MuxUploaderDropElement);
+  //@ts-ignore
+  globalThis.MuxUploaderDropElement = MuxUploaderDropElement;
 }
 
 export default MuxUploaderElement;
