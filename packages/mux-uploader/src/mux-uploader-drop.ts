@@ -2,14 +2,27 @@ const template = document.createElement('template');
 
 template.innerHTML = `
 <style>
+  /* These styles simulate a user passing these via props. Until
+     that's implemented, we just hardcode it for non-full-screen demo purposes. (TD).
+  */
   .dropzone {
-    height: var(--dropzone-height, inherit);
-    width: var(--dropzone-width, inherit);
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 100%;
+    width: 100%;
+  }
+
+  /* TO-DO: Make default dropzone hover more apparent. (TD).*/
+
+  :host([disableDrop]) .dropzone {
+    display: none;
   }
 
   .overlay {
-    height: var(--overlay-height, inherit);
-    width: var(--overlay-width, inherit);
+    display: none;
   }
 
   :host([fullScreen]) .dropzone {
@@ -23,7 +36,7 @@ template.innerHTML = `
     z-index: 1;
   }
 
-  :host([fullScreen]) .overlay {
+  :host([fullScreen][enableOverlay]) .overlay {
     position: absolute;
     top: 0;
     bottom: 0;
@@ -34,9 +47,9 @@ template.innerHTML = `
     z-index: -1;
   }
  
-  :host([active][fullScreen]) .overlay {
+  :host([active][fullScreen][enableOverlay]) .overlay {
     z-index: 10;
-    background-color: rgba(226, 253, 255, 0.95);
+    background-color: var(--overlay-background-color, rgba(226, 253, 255, 0.95));
 
     display: flex;
     flex-direction: column;
@@ -48,13 +61,13 @@ template.innerHTML = `
     display: none;
   }
 
-  :host([active]) h1 {
+  :host([active][enableOverlay]) h1 {
     display: block;
   }
 </style>
 
 <div class="overlay" id="overlay">
-<h1 id="overlay-text"></h1>
+  <h1 id="overlay-text"></h1>
 </div>
 <div class="dropzone" id="dropzone">
 </div>
@@ -89,11 +102,29 @@ class MuxUploaderDrop extends HTMLElement {
     return uploaderId ? document.getElementById(uploaderId) : null;
   }
 
-  // attributeChangedCallback(attrName, oldValue, newValue) {
-  //   if (attrName === 'mux-uploader') {
+  /* TO-DO: Maybe use something like this from player so allow users to fully customize the dropzone
+     without having to make a ton of CSS variables available i.e. position absolute. (TD).
 
-  //   }
-  // }
+  kebabCase(string: String) {
+    return string.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
+  }
+
+  stylePropsToString(props: any) {
+    let style = '';
+    Object.entries(props).forEach(([key, value]) => {
+      style += `${this.kebabCase(key)}: ${value}; `;
+    });
+    return style ? style.trim() : undefined;
+  }
+  
+
+  customizeDropzone() {
+    if(this.getAttribute('props')) {
+      // change .dropzone to use styles returned from stylePropsToString;
+      // this.setClass('dropzone', this.stylePropsToString(this.getAttribute('props')));
+    }
+  }
+  */
 
   setupDragEvents() {
     this.addEventListener('dragenter', (evt) => {

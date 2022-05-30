@@ -86,11 +86,14 @@
 
         --button-border-radius: 40px;
       }
+
+      mux-uploader[upload-in-progress] {
+        min-width: 250px;
+      }
     </style>
   </head>
   <body>
     <div class="container">
-      <!-- <mux-uploader-drop> -->
         <main>
             <header>
               <h1>Add a video.</h1>
@@ -100,13 +103,12 @@
             <input type="text" class="direct-upload-url" placeholder="https://storage.googleapis.com/..." />
             <div class="button-container">
               <mux-uploader type="bar" id="uploader-controller">
-                <mux-uploader-drop slot="dropzone" text="Upload to stream.new" fullScreen></mux-uploader-drop>
+                <mux-uploader-drop slot="dropzone" text="Upload to stream.new" fullScreen enableOverlay enableStatus></mux-uploader-drop>
               </mux-uploader>
               <button class="second-button">Some other sample button</button>
             </div>
         </main>
         <footer><a href="../">Browse Elements</a></footer>
-      <!-- </mux-uploader-drop> -->
     </div>
 
     <script>

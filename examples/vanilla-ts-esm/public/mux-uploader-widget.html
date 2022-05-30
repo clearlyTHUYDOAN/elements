@@ -44,6 +44,8 @@
         display: flex;
         justify-content: center;
         align-items: center;
+
+        position: relative;
       }
 
       header {
@@ -94,7 +96,7 @@
       <div class="dashboard">
         <div class="widget"></div>
         <div class="widget">
-          <mux-uploader type="bar" id="uploader-controller">
+          <mux-uploader type="bar" id="uploader-controller" disableDrop="true">
           </mux-uploader>
         </div>
         <div class="widget"></div>
@@ -108,6 +110,7 @@
     <script>
       const input = document.querySelector('input[type="text"]');
       const muxUploader = document.querySelector('mux-uploader');
+
       input.addEventListener('change', () => {
         muxUploader.setAttribute('url', input.value);
       });

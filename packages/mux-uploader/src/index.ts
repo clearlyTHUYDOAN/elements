@@ -28,6 +28,8 @@ button {
   transition: all 0.2s ease;
   font-family: inherit;
   font-size: inherit;
+  z-index: 10;
+  position: relative;
 }
 
 button:hover {
@@ -64,6 +66,8 @@ button:active {
   color: #e22c3e;
   text-decoration-line: underline;
   cursor: pointer;
+  z-index: 10;
+  position: relative;
 }
 
 .text-container {
@@ -84,7 +88,7 @@ button:active {
   display: block;
 }
 
-:host([upload-in-progress]) .upload-status {
+:host([upload-in-progress][enableStatus]) .upload-status {
   display: block;
 }
 
@@ -104,7 +108,7 @@ button:active {
   color: #e22c3e;
 }
 
-:host([upload-error]) .upload-status {
+:host([upload-error][enableStatus]) .upload-status {
   display: none;
 }
 
@@ -121,7 +125,7 @@ button:active {
 }
 
 .upload-status {
-  font-size: 42px;
+  font-size: inherit;
   margin-bottom: 16px;
 }
 
@@ -199,6 +203,7 @@ template.innerHTML = `
 </slot>
 `;
 
+// Note: Use "bar" for now since the CSS for radial is WIP. (TD).
 const TYPES = {
   BAR: 'bar',
   RADIAL: 'radial',
@@ -241,6 +246,16 @@ class MuxUploaderElement extends HTMLElement {
     this.setAttribute('role', 'progressbar');
     this.setAttribute('aria-label', 'progress bar');
     this.setAttribute('aria-live', 'polite');
+
+    // TO-DO: Might want to standardize if we prefer to have users disable or enable things. (TD).
+    // Edge case: User wants to use the uploader without drag.
+    // Because we slot a default mux-uploader-drop if they don't slot one,
+    // in order to disable drop, the user has to pass disableDrop to mux-uploader and mux-uploader-drop
+    // must apply it in order to disable the drop. It currently requires you to explicit pass "true".
+    if (this.getAttribute('disableDrop')) {
+      const muxUploaderDrop = this.shadowRoot?.querySelector('mux-uploader-drop');
+      muxUploaderDrop?.setAttribute('disableDrop', '');
+    }
   }
 
   disconnectedCallback() {
