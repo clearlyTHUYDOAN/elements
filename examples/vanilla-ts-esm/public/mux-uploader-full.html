@@ -64,22 +64,13 @@
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
-
-        /* position: absolute;
-        right: 0;
-        bottom: 0;
-
-        margin-top: 30px;
-        margin-right: 30px;
-        margin-bottom: 100px; */
       }
 
       .second-button {
         align-self: flex-end;
         margin-top: 20px;
-        z-index: 10;
+        z-index: 1;
         position: relative;
-        /* width: 15%; */
       }
 
       footer {
@@ -91,42 +82,32 @@
       }
       
       mux-uploader {
-        /* --uploader-background-color: rgb(196, 196, 196, 0.95); */
         align-self: flex-end;
 
-        /* --progress-bar-fill-color: purple;
-        --progress-radial-fill-color: pink;
-        --button-background-color: rgb(233, 178, 75);
-        --button-hover-background: rgb(221, 208, 208);
-        --button-hover-text: black; */
         --button-border-radius: 40px;
-      }
-     
-      mux-uploader[upload-in-progress] {
-        background-color: inherit;
-        border: none;
       }
     </style>
   </head>
   <body>
     <div class="container">
-      <main>
-          <header>
-            <h1>Add a video.</h1>
-            <h1>Get a shareable link to stream it.</h1>
-          </header>
-          <h2>Enter your upload GCS url:</h1>
-          <input type="text" class="direct-upload-url" placeholder="https://storage.googleapis.com/..." />
-          <div class="button-container">
-            <mux-uploader type="bar" draggable>
-              <!-- <button type="button" slot="custom-button">Custom button</button> -->
-              <!-- <p slot="custom-progress">Uploading...</p> -->
-            </mux-uploader>
-            <button class="second-button">Some other sample button</button>
-          </div>
-      </main>
+      <!-- <mux-uploader-drop> -->
+        <main>
+            <header>
+              <h1>Add a video.</h1>
+              <h1>Get a shareable link to stream it.</h1>
+            </header>
+            <h2>Enter your upload GCS url:</h1>
+            <input type="text" class="direct-upload-url" placeholder="https://storage.googleapis.com/..." />
+            <div class="button-container">
+              <mux-uploader type="bar" id="uploader-controller">
+                <mux-uploader-drop slot="dropzone" text="Upload to stream.new" fullScreen></mux-uploader-drop>
+              </mux-uploader>
+              <button class="second-button">Some other sample button</button>
+            </div>
+        </main>
+        <footer><a href="../">Browse Elements</a></footer>
+      <!-- </mux-uploader-drop> -->
     </div>
-    <footer><a href="../">Browse Elements</a></footer>
 
     <script>
       const input = document.querySelector('input[type="text"]');
